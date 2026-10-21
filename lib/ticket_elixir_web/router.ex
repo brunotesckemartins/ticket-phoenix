@@ -17,24 +17,14 @@ defmodule TicketElixirWeb.Router do
     plug :accepts, ["json"]
   end
 
-  scope "/", TicketElixirWeb do
-    pipe_through :browser
-
-    get "/", PageController, :home
-  end
-
-  # Other scopes may use custom stacks.
-  # scope "/api", TicketElixirWeb do
-  #   pipe_through :api
+  # Desativamos a página padrão do Phoenix
+  # scope "/", TicketElixirWeb do
+  #   pipe_through :browser
+  #   get "/", PageController, :home
   # end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
   if Application.compile_env(:ticket_elixir, :dev_routes) do
-    # If you want to use the LiveDashboard in production, you should put
-    # it behind authentication and allow only admins to access it.
-    # If your application does not have an admins-only section yet,
-    # you can use Plug.BasicAuth to set up some basic authentication
-    # as long as you are also using SSL (which you should anyway).
     import Phoenix.LiveDashboard.Router
 
     scope "/dev" do
@@ -50,15 +40,22 @@ defmodule TicketElixirWeb.Router do
   scope "/", TicketElixirWeb do
     pipe_through [:browser, :require_authenticated_user]
 
-        live_session :require_authenticated_user,
+    live_session :require_authenticated_user,
       on_mount: [{TicketElixirWeb.UserAuth, :require_authenticated}] do
+
+      # Rota do Dashboard (Página inicial)
+      live "/", DashboardLive, :index
+
+      # Rotas de configuração do usuário
       live "/users/settings", UserLive.Settings, :edit
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
 
-      # Rotas do sistema de chamados:
+      # Rotas do sistema de chamados
       live "/chamados", TicketLive.Index, :index
       live "/chamados/novo", TicketLive.New, :new
       live "/chamados/:id", TicketLive.Show, :show
+
+      # Rota de Gestão de Usuários
       live "/usuarios", UserLive.Index, :index
     end
 

@@ -22,7 +22,7 @@ defmodule TicketElixirWeb.Layouts do
     ~H"""
         <header class="navbar px-4 sm:px-6 lg:px-8 border-b border-base-300 bg-base-100 sticky top-0 z-50">
       <div class="flex-1">
-        <a href="/chamados" class="flex-1 flex w-fit items-center gap-2 hover:opacity-80 transition-opacity">
+        <a href="/" class="flex-1 flex w-fit items-center gap-2 hover:opacity-80 transition-opacity">
           <!-- Ícone de Ticket do Heroicons -->
           <.icon name="hero-ticket" class="w-7 h-7 text-primary" />
           <span class="text-xl font-bold tracking-tight">HelpDesk</span>
@@ -67,8 +67,8 @@ defmodule TicketElixirWeb.Layouts do
       </div>
     </header>
 
-    <main class="px-4 py-20 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-2xl space-y-4">
+    <main class="px-4 py-8 sm:px-6 lg:px-8 flex-1">
+      <div class="mx-auto max-w-7xl">
         {render_slot(@inner_block)}
       </div>
     </main>

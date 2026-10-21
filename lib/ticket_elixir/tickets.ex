@@ -76,4 +76,15 @@ defmodule TicketElixir.Tickets do
   def change_ticket(%Ticket{} = ticket, attrs \\ %{}) do
     Ticket.changeset(ticket, attrs)
   end
+
+    def count_tickets(user, status) do
+    query =
+      if user.role == :suporte do
+        from t in Ticket, where: t.status == ^status
+      else
+        from t in Ticket, where: t.solicitante_id == ^user.id and t.status == ^status
+      end
+
+    Repo.aggregate(query, :count, :id)
+  end
 end

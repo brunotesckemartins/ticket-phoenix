@@ -135,15 +135,22 @@ defmodule TicketElixirWeb.TicketLive.Show do
 
   @impl true
   def render(assigns) do
-    ~H"""
+        ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <div class="max-w-3xl mx-auto p-4 flex flex-col h-[80vh]">
+      <!-- Aumentamos a largura para max-w-7xl e ajustamos a altura -->
+      <div class="max-w-7xl mx-auto p-2 sm:p-4 flex flex-col h-[calc(100vh-100px)]">
 
-        <div class="border-b pb-4 mb-4 flex justify-between items-center">
+        <!-- Cabeçalho do Chamado -->
+        <div class="bg-base-100 border border-base-300 rounded-t-xl p-4 flex justify-between items-center shadow-sm">
           <div>
-            <h1 class="text-2xl font-bold">{@ticket.subject}</h1>
-            <p class="text-sm text-gray-500">
-              Solicitante: {@ticket.solicitante.name} | Status: <strong class="uppercase text-primary">{@ticket.status}</strong>
+            <h1 class="text-xl font-bold flex items-center gap-3">
+              {@ticket.subject}
+              <span class={"badge " <> if @ticket.status == :aberto, do: "badge-warning", else: (if @ticket.status == :em_andamento, do: "badge-primary", else: "badge-success")}>
+                {@ticket.status}
+              </span>
+            </h1>
+            <p class="text-sm text-base-content/70 mt-1">
+              Solicitante: <strong>{@ticket.solicitante.name}</strong>
               <%= if @ticket.atendente do %>
                 | Atendente: <strong>{@ticket.atendente.name}</strong>
               <% end %>
@@ -154,16 +161,19 @@ defmodule TicketElixirWeb.TicketLive.Show do
               <button :if={@ticket.status == :aberto} phx-click="assign_ticket" class="btn btn-warning btn-sm">Assumir Chamado</button>
               <button :if={@ticket.status == :em_andamento} phx-click="resolve_ticket" class="btn btn-success btn-sm">Marcar como Resolvido</button>
             <% end %>
-            <.link navigate={~p"/chamados"} class="btn btn-sm">Voltar</.link>
+            <.link navigate={~p"/chamados"} class="btn btn-ghost btn-sm">Voltar</.link>
           </div>
         </div>
 
-        <div class="flex-1 overflow-y-auto space-y-4 p-4 bg-base-200 rounded-lg" id="chat-container" phx-hook="ScrollToBottom">
+        <!-- Área das Mensagens (Ocupa todo o espaço restante) -->
+        <!-- O 'min-h-0' é essencial para o scroll funcionar dentro de um flexbox -->
+        <div class="flex-1 overflow-y-auto p-4 bg-base-200 border-x border-base-300 space-y-4 min-h-0" id="chat-container" phx-hook="ScrollToBottom">
           <%= for msg <- @messages do %>
             <div class={"chat " <> if msg.user_id == @current_scope.user.id, do: "chat-end", else: "chat-start"}>
-              <div class="chat-header text-xs opacity-50 mb-1">
-                {msg.user.name} - {Calendar.strftime(msg.inserted_at, "%d/%m %H:%M")}
-                <span :if={msg.internal} class="badge badge-warning badge-sm ml-2">Nota Interna</span>
+              <div class="chat-header text-xs text-base-content/60 mb-1 flex items-center gap-2">
+                {msg.user.name}
+                <time class="text-[10px]">{Calendar.strftime(msg.inserted_at, "%d/%m %H:%M")}</time>
+                <span :if={msg.internal} class="badge badge-warning badge-sm">Nota Interna</span>
               </div>
               <div class={"chat-bubble " <> if msg.internal, do: "chat-bubble-warning", else: (if msg.user_id == @current_scope.user.id, do: "chat-bubble-primary", else: "")}>
                 <p :if={msg.body != ""}>{msg.body}</p>
@@ -172,10 +182,10 @@ defmodule TicketElixirWeb.TicketLive.Show do
                   <%= for att <- msg.attachments do %>
                     <%= if String.starts_with?(att.content_type, "image/") do %>
                       <a href={att.path} target="_blank">
-                        <img src={att.path} alt={att.filename} class="max-w-[200px] rounded-lg cursor-pointer hover:opacity-80" />
+                        <img src={att.path} alt={att.filename} class="max-w-[250px] rounded-lg cursor-pointer hover:opacity-90 transition-opacity" />
                       </a>
                     <% else %>
-                      <video src={att.path} controls class="max-w-[300px] rounded-lg mt-2"></video>
+                      <video src={att.path} controls class="max-w-[350px] rounded-lg mt-2 shadow-sm"></video>
                     <% end %>
                   <% end %>
                 </div>
@@ -184,37 +194,51 @@ defmodule TicketElixirWeb.TicketLive.Show do
           <% end %>
         </div>
 
-        <div class="mt-4">
+        <!-- Área do Formulário Integrada -->
+        <div class="bg-base-100 border border-base-300 rounded-b-xl p-3 shadow-sm">
           <.form for={@form} id="chat-form" phx-submit="send_message" phx-change="validate_upload" class="flex flex-col gap-2">
 
             <!-- Prévia dos arquivos -->
-            <div :if={@uploads.image.entries != []} class="flex gap-2 mb-2">
+            <div :if={@uploads.image.entries != []} class="flex gap-2 mb-1 px-1">
               <%= for entry <- @uploads.image.entries do %>
-                <div class="relative w-24 h-24 border rounded bg-base-100 flex items-center justify-center overflow-hidden">
+                <div class="relative w-20 h-20 border rounded-lg bg-base-200 flex items-center justify-center overflow-hidden">
                   <%= if String.starts_with?(entry.client_type, "image/") do %>
-                    <.live_img_preview entry={entry} class="w-full h-full object-cover rounded" />
+                    <.live_img_preview entry={entry} class="w-full h-full object-cover" />
                   <% else %>
-                    <span class="text-xs text-center px-2 truncate">{entry.client_name}</span>
+                    <span class="text-[10px] text-center px-1 truncate">{entry.client_name}</span>
                   <% end %>
-                  <button type="button" phx-click="cancel_upload" phx-value-ref={entry.ref} class="absolute -top-1 -right-1 btn btn-circle btn-xs btn-error">X</button>
+                  <button type="button" phx-click="cancel_upload" phx-value-ref={entry.ref} class="absolute top-1 right-1 btn btn-circle btn-xs btn-error text-white">✕</button>
                 </div>
               <% end %>
             </div>
 
-            <div class="flex gap-2 items-center">
-              <label class="btn btn-square btn-ghost cursor-pointer">
+            <!-- Barra de digitação estilo WhatsApp -->
+            <div class="flex gap-2 items-end">
+              <label class="btn btn-square btn-ghost text-base-content/70 hover:text-primary mb-0.5">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                   <path stroke-linecap="round" stroke-linejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" />
                 </svg>
                 <.live_file_input upload={@uploads.image} class="hidden" />
               </label>
 
-              <.input field={@form[:body]} type="text" placeholder="Digite sua mensagem..." autocomplete="off" class="flex-1 input input-bordered w-full" />
-              <.button class="btn btn-primary">Enviar</.button>
+              <.input
+                field={@form[:body]}
+                type="text"
+                placeholder="Digite sua mensagem..."
+                autocomplete="off"
+                class="flex-1 input input-bordered w-full focus:outline-none focus:ring-1 focus:ring-primary mb-0.5"
+              />
+
+              <.button class="btn btn-primary btn-square mb-0.5">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                  <path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" />
+                </svg>
+              </.button>
             </div>
 
+            <!-- Checkbox de Nota Interna -->
             <%= if @current_scope.user.role == :suporte do %>
-              <label class="label cursor-pointer justify-start gap-2 w-fit">
+              <label class="label cursor-pointer justify-start gap-2 w-fit px-1">
                 <.input field={@form[:internal]} type="checkbox" label="Nota Interna (Solicitante não vê)" class="checkbox checkbox-warning checkbox-sm" />
               </label>
             <% end %>
