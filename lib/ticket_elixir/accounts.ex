@@ -294,4 +294,20 @@ defmodule TicketElixir.Accounts do
       end
     end)
   end
+
+    def list_users do
+    TicketElixir.Repo.all(User)
+  end
+
+  def update_user_role(%User{} = user, role) do
+    user
+    |> Ecto.Changeset.change(role: role)
+    |> TicketElixir.Repo.update()
+  end
+
+  def reset_user_password(%User{} = user, new_password) do
+    user
+    |> User.password_changeset(%{password: new_password, password_confirmation: new_password})
+    |> TicketElixir.Repo.update()
+  end
 end

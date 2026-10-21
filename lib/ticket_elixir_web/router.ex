@@ -59,6 +59,7 @@ defmodule TicketElixirWeb.Router do
       live "/chamados", TicketLive.Index, :index
       live "/chamados/novo", TicketLive.New, :new
       live "/chamados/:id", TicketLive.Show, :show
+      live "/usuarios", UserLive.Index, :index
     end
 
     post "/users/update-password", UserSessionController, :update_password
