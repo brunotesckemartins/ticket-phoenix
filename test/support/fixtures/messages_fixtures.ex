@@ -18,4 +18,19 @@ defmodule TicketElixir.MessagesFixtures do
 
     message
   end
+
+  @doc """
+  Generate a attachment.
+  """
+  def attachment_fixture(scope, attrs \\ %{}) do
+    attrs =
+      Enum.into(attrs, %{
+        content_type: "some content_type",
+        filename: "some filename",
+        path: "some path"
+      })
+
+    {:ok, attachment} = TicketElixir.Messages.create_attachment(scope, attrs)
+    attachment
+  end
 end

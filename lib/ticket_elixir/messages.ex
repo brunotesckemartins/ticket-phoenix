@@ -1,14 +1,15 @@
 defmodule TicketElixir.Messages do
   import Ecto.Query, warn: false
   alias TicketElixir.Repo
-  alias TicketElixir.Messages.Message
+  alias TicketElixir.Messages.{Message, Attachment}
 
   def subscribe(ticket_id) do
     Phoenix.PubSub.subscribe(TicketElixir.PubSub, "ticket:#{ticket_id}")
   end
 
   def broadcast({:ok, message} = result) do
-    message = Repo.preload(message, [:user])
+    # Carrega o usuário e os anexos para enviar pro front
+    message = Repo.preload(message, [:user, :attachments])
 
     Phoenix.PubSub.broadcast(
       TicketElixir.PubSub,
@@ -17,14 +18,13 @@ defmodule TicketElixir.Messages do
     )
     result
   end
-
   def broadcast(result), do: result
 
   def list_messages(ticket_id) do
     from(m in Message,
       where: m.ticket_id == ^ticket_id,
       order_by: [asc: m.inserted_at],
-      preload: [:user]
+      preload: [:user, :attachments] # <--- AQUI
     )
     |> Repo.all()
   end
@@ -33,6 +33,11 @@ defmodule TicketElixir.Messages do
     %Message{}
     |> Message.changeset(attrs)
     |> Repo.insert()
-    |> broadcast()
+  end
+
+  def create_attachment(attrs) do
+    %Attachment{}
+    |> Attachment.changeset(attrs)
+    |> Repo.insert!()
   end
 end

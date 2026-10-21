@@ -16,12 +16,24 @@ defmodule TicketElixirWeb.TicketLive.Show do
         Tickets.subscribe_ticket(ticket.id)
       end
 
-      {:ok,
-       socket
-       |> assign(:ticket, ticket)
-       |> assign(:messages, ticket.messages)
-       |> assign(:form, to_form(%{"body" => "", "internal" => false}))}
+      socket =
+        socket
+        |> assign(:ticket, ticket)
+        |> assign(:messages, ticket.messages)
+        |> assign(:form, to_form(%{"body" => "", "internal" => false}))
+        |> allow_upload(:image, accept: ~w(.jpg .jpeg .png .gif), max_entries: 3, max_file_size: 5_000_000)
+
+      {:ok, socket}
     end
+  end
+
+  @impl true
+  def handle_event("validate_upload", _params, socket) do
+    {:noreply, socket}
+  end
+
+  def handle_event("cancel_upload", %{"ref" => ref}, socket) do
+    {:noreply, cancel_upload(socket, :image, ref)}
   end
 
   @impl true
@@ -31,17 +43,39 @@ defmodule TicketElixirWeb.TicketLive.Show do
     user = socket.assigns.current_scope.user
     ticket = socket.assigns.ticket
 
-    if String.trim(body) == "" do
+    if String.trim(body) == "" and socket.assigns.uploads.image.entries == [] do
       {:noreply, socket}
     else
-      Messages.create_message(%{
+      # 1. Salva a mensagem no banco
+      {:ok, message} = Messages.create_message(%{
         body: body,
         internal: internal,
         ticket_id: ticket.id,
         user_id: user.id
       })
 
-      # Lógica de reabertura
+      # 2. Salva os anexos
+      consume_uploaded_entries(socket, :image, fn %{path: path}, entry ->
+        filename = "#{Ecto.UUID.generate()}#{Path.extname(entry.client_name)}"
+        dest = Path.join(["priv/static/uploads", filename])
+
+        File.mkdir_p!(Path.dirname(dest))
+        File.cp!(path, dest)
+
+        Messages.create_attachment(%{
+          message_id: message.id,
+          filename: entry.client_name,
+          content_type: entry.client_type,
+          path: "/uploads/#{filename}"
+        })
+
+        {:ok, filename}
+      end)
+
+      # 3. Avisa todo mundo que a mensagem (com anexos) foi criada
+      Messages.broadcast({:ok, message})
+
+      # 4. Reabertura do chamado
       ticket =
         if user.role == :solicitante and ticket.status in [:resolvido, :fechado] and not internal do
           {:ok, t} = Tickets.update_ticket(ticket, %{status: :em_andamento})
@@ -129,18 +163,46 @@ defmodule TicketElixirWeb.TicketLive.Show do
                 <span :if={msg.internal} class="badge badge-warning badge-sm ml-2">Nota Interna</span>
               </div>
               <div class={"chat-bubble " <> if msg.internal, do: "chat-bubble-warning", else: (if msg.user_id == @current_scope.user.id, do: "chat-bubble-primary", else: "")}>
-                {msg.body}
+                <p :if={msg.body != ""}>{msg.body}</p>
+
+                <div :if={msg.attachments != []} class="mt-2 space-y-2">
+                  <%= for att <- msg.attachments do %>
+                    <a href={att.path} target="_blank">
+                      <img src={att.path} alt={att.filename} class="max-w-[200px] rounded-lg cursor-pointer hover:opacity-80" />
+                    </a>
+                  <% end %>
+                </div>
               </div>
             </div>
           <% end %>
         </div>
 
         <div class="mt-4">
-          <.form for={@form} id="chat-form" phx-submit="send_message" class="flex flex-col gap-2">
-            <div class="flex gap-2">
-              <.input field={@form[:body]} type="text" placeholder="Digite sua mensagem..." autocomplete="off" class="flex-1 input input-bordered w-full" />
-              <.button type="submit" class="btn btn-primary">Enviar</.button>
+          <.form for={@form} id="chat-form" phx-submit="send_message" phx-change="validate_upload" class="flex flex-col gap-2">
+
+            <!-- Prévia das imagens -->
+            <div :if={@uploads.image.entries != []} class="flex gap-2 mb-2">
+              <%= for entry <- @uploads.image.entries do %>
+                <div class="relative w-20 h-20 border rounded bg-base-100">
+                  <.live_img_preview entry={entry} class="w-full h-full object-cover rounded" />
+                  <button type="button" phx-click="cancel_upload" phx-value-ref={entry.ref} class="absolute -top-2 -right-2 btn btn-circle btn-xs btn-error">X</button>
+                </div>
+              <% end %>
             </div>
+
+            <div class="flex gap-2 items-center">
+              <!-- Botão de Anexo (Clipe) -->
+              <label class="btn btn-square btn-ghost cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" />
+                </svg>
+                <.live_file_input upload={@uploads.image} class="hidden" />
+              </label>
+
+              <.input field={@form[:body]} type="text" placeholder="Digite sua mensagem..." autocomplete="off" class="flex-1 input input-bordered w-full" />
+              <.button class="btn btn-primary">Enviar</.button>
+            </div>
+
             <%= if @current_scope.user.role == :suporte do %>
               <label class="label cursor-pointer justify-start gap-2 w-fit">
                 <.input field={@form[:internal]} type="checkbox" label="Nota Interna (Solicitante não vê)" class="checkbox checkbox-warning checkbox-sm" />

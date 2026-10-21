@@ -3,7 +3,6 @@ defmodule TicketElixir.Tickets do
   alias TicketElixir.Repo
   alias TicketElixir.Tickets.Ticket
 
-  # --- NOVAS FUNÇÕES DE TEMPO REAL ---
   def subscribe_ticket(ticket_id) do
     Phoenix.PubSub.subscribe(TicketElixir.PubSub, "ticket_update:#{ticket_id}")
   end
@@ -17,7 +16,6 @@ defmodule TicketElixir.Tickets do
     result
   end
   def broadcast_ticket(result), do: result
-  # -----------------------------------
 
   def list_all_tickets do
     from(t in Ticket, order_by: [desc: t.updated_at]) |> Repo.all()
@@ -31,7 +29,7 @@ defmodule TicketElixir.Tickets do
 
   def get_ticket_with_messages!(id) do
     Repo.get!(Ticket, id)
-    |> Repo.preload([:solicitante, :atendente, messages: [:user]])
+    |> Repo.preload([:solicitante, :atendente, messages: [:user, :attachments]]) # <--- AQUI
   end
 
   def create_ticket(attrs \\ %{}) do
@@ -44,7 +42,7 @@ defmodule TicketElixir.Tickets do
     ticket
     |> Ticket.changeset(attrs)
     |> Repo.update()
-    |> broadcast_ticket() # Avisa o frontend sobre a mudança
+    |> broadcast_ticket()
   end
 
   def change_ticket(%Ticket{} = ticket, attrs \\ %{}) do

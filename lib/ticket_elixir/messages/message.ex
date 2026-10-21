@@ -11,6 +11,9 @@ defmodule TicketElixir.Messages.Message do
     belongs_to :ticket, TicketElixir.Tickets.Ticket
     belongs_to :user, TicketElixir.Accounts.User
 
+    # A LINHA MÁGICA QUE FALTAVA:
+    has_many :attachments, TicketElixir.Messages.Attachment
+
     timestamps(type: :utc_datetime)
   end
 
@@ -18,6 +21,6 @@ defmodule TicketElixir.Messages.Message do
   def changeset(message, attrs) do
     message
     |> cast(attrs, [:body, :internal, :ticket_id, :user_id])
-    |> validate_required([:body, :ticket_id, :user_id])
+    |> validate_required([:ticket_id, :user_id])
   end
 end
