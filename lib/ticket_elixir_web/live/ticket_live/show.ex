@@ -13,7 +13,7 @@ defmodule TicketElixirWeb.TicketLive.Show do
     else
       if connected?(socket) do
         Messages.subscribe(ticket.id)
-        Tickets.subscribe_ticket(ticket.id) # Escuta mudanças de status
+        Tickets.subscribe_ticket(ticket.id)
       end
 
       {:ok,
@@ -27,15 +27,13 @@ defmodule TicketElixirWeb.TicketLive.Show do
   @impl true
   def handle_event("send_message", params, socket) do
     body = params["body"]
-    # Só permite nota interna se for suporte
     internal = params["internal"] == "true" and socket.assigns.current_scope.user.role == :suporte
+    user = socket.assigns.current_scope.user
+    ticket = socket.assigns.ticket
 
     if String.trim(body) == "" do
       {:noreply, socket}
     else
-      user = socket.assigns.current_scope.user
-      ticket = socket.assigns.ticket
-
       Messages.create_message(%{
         body: body,
         internal: internal,
@@ -43,11 +41,22 @@ defmodule TicketElixirWeb.TicketLive.Show do
         user_id: user.id
       })
 
-      {:noreply, assign(socket, :form, to_form(%{"body" => "", "internal" => false}))}
+      # Lógica de reabertura
+      ticket =
+        if user.role == :solicitante and ticket.status in [:resolvido, :fechado] and not internal do
+          {:ok, t} = Tickets.update_ticket(ticket, %{status: :em_andamento})
+          t
+        else
+          ticket
+        end
+
+      {:noreply,
+       socket
+       |> assign(:ticket, ticket)
+       |> assign(:form, to_form(%{"body" => "", "internal" => false}))}
     end
   end
 
-  # Evento: Suporte assumir chamado
   def handle_event("assign_ticket", _params, socket) do
     user = socket.assigns.current_scope.user
     ticket = socket.assigns.ticket
@@ -60,7 +69,6 @@ defmodule TicketElixirWeb.TicketLive.Show do
     end
   end
 
-  # Evento: Suporte resolver chamado
   def handle_event("resolve_ticket", _params, socket) do
     user = socket.assigns.current_scope.user
     ticket = socket.assigns.ticket
@@ -73,7 +81,6 @@ defmodule TicketElixirWeb.TicketLive.Show do
     end
   end
 
-  # Recebe mensagem nova
   @impl true
   def handle_info({:new_message, message}, socket) do
     user = socket.assigns.current_scope.user
@@ -84,7 +91,6 @@ defmodule TicketElixirWeb.TicketLive.Show do
     end
   end
 
-  # Recebe atualização do status do chamado (ex: quando o suporte assume)
   @impl true
   def handle_info({:ticket_updated, ticket}, socket) do
     {:noreply, assign(socket, :ticket, ticket)}
@@ -107,7 +113,6 @@ defmodule TicketElixirWeb.TicketLive.Show do
             </p>
           </div>
           <div class="flex gap-2">
-            <!-- Botões do Suporte -->
             <%= if @current_scope.user.role == :suporte do %>
               <button :if={@ticket.status == :aberto} phx-click="assign_ticket" class="btn btn-warning btn-sm">Assumir Chamado</button>
               <button :if={@ticket.status == :em_andamento} phx-click="resolve_ticket" class="btn btn-success btn-sm">Marcar como Resolvido</button>
@@ -116,7 +121,7 @@ defmodule TicketElixirWeb.TicketLive.Show do
           </div>
         </div>
 
-        <div class="flex-1 overflow-y-auto space-y-4 p-4 bg-base-200 rounded-lg" id="chat-container">
+        <div class="flex-1 overflow-y-auto space-y-4 p-4 bg-base-200 rounded-lg" id="chat-container" phx-hook="ScrollToBottom">
           <%= for msg <- @messages do %>
             <div class={"chat " <> if msg.user_id == @current_scope.user.id, do: "chat-end", else: "chat-start"}>
               <div class="chat-header text-xs opacity-50 mb-1">
@@ -136,7 +141,6 @@ defmodule TicketElixirWeb.TicketLive.Show do
               <.input field={@form[:body]} type="text" placeholder="Digite sua mensagem..." autocomplete="off" class="flex-1 input input-bordered w-full" />
               <.button type="submit" class="btn btn-primary">Enviar</.button>
             </div>
-            <!-- Checkbox de Nota Interna (só aparece para Suporte) -->
             <%= if @current_scope.user.role == :suporte do %>
               <label class="label cursor-pointer justify-start gap-2 w-fit">
                 <.input field={@form[:internal]} type="checkbox" label="Nota Interna (Solicitante não vê)" class="checkbox checkbox-warning checkbox-sm" />
