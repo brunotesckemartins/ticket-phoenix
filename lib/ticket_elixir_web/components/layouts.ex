@@ -20,38 +20,49 @@ defmodule TicketElixirWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <header class="navbar px-4 sm:px-6 lg:px-8">
+        <header class="navbar px-4 sm:px-6 lg:px-8 border-b border-base-300 bg-base-100 sticky top-0 z-50">
       <div class="flex-1">
-        <a href="/" class="flex-1 flex w-fit items-center gap-2">
-          <img src={~p"/images/logo.svg"} width="36" />
-          <span class="text-sm font-semibold">v{Application.spec(:phoenix, :vsn)}</span>
+        <a href="/chamados" class="flex-1 flex w-fit items-center gap-2 hover:opacity-80 transition-opacity">
+          <!-- Ícone de Ticket do Heroicons -->
+          <.icon name="hero-ticket" class="w-7 h-7 text-primary" />
+          <span class="text-xl font-bold tracking-tight">HelpDesk</span>
         </a>
       </div>
-      <div class="flex-none">
-        <ul class="flex px-1 space-x-4 items-center">
 
-          <!-- BOTÃO DE USUÁRIOS ADICIONADO AQUI (Só aparece se for suporte) -->
+      <div class="flex-none">
+        <ul class="flex px-1 space-x-2 items-center">
+
+          <!-- Botão de Usuários (apenas Suporte) -->
           <li :if={@current_scope && @current_scope.user.role == :suporte}>
-            <.link navigate={~p"/usuarios"} class="btn btn-ghost">
+            <.link navigate={~p"/usuarios"} class="btn btn-ghost btn-sm font-medium text-base-content/80">
               Usuários
             </.link>
           </li>
-          <!-- FIM DO BOTÃO -->
 
-          <li>
-            <a href="https://phoenixframework.org/" class="btn btn-ghost">Website</a>
-          </li>
-          <li>
-            <a href="https://github.com/phoenixframework/phoenix" class="btn btn-ghost">GitHub</a>
-          </li>
           <li>
             <.theme_toggle />
           </li>
-          <li>
-            <a href="https://phoenix.hexdocs.pm/overview.html" class="btn btn-primary">
-              Get Started <span aria-hidden="true">&rarr;</span>
-            </a>
+
+          <!-- Menu do Usuário Logado -->
+          <li :if={@current_scope && @current_scope.user}>
+            <div class="dropdown dropdown-end ml-2">
+              <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar placeholder">
+                <div class="bg-neutral text-neutral-content rounded-full w-9">
+                  <!-- Pega a primeira letra do nome do usuário -->
+                  <span>{String.first(@current_scope.user.name)}</span>
+                </div>
+              </div>
+              <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-box w-56 mt-4 border border-base-200">
+                <div class="px-4 py-2 border-b border-base-200 mb-1">
+                  <p class="text-sm font-semibold truncate">{@current_scope.user.name}</p>
+                  <p class="text-xs text-base-content/60 truncate">{@current_scope.user.email}</p>
+                </div>
+                <li><.link navigate={~p"/users/settings"} class="text-sm">Configurações</.link></li>
+                <li><.link href={~p"/users/log-out"} method="delete" class="text-sm text-error">Sair da conta</.link></li>
+              </ul>
+            </div>
           </li>
+
         </ul>
       </div>
     </header>

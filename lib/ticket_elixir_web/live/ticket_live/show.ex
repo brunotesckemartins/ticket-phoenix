@@ -24,7 +24,7 @@ defmodule TicketElixirWeb.TicketLive.Show do
         |> assign(:ticket, ticket)
         |> assign(:messages, ticket.messages)
         |> assign(:form, to_form(%{"body" => "", "internal" => false}))
-        |> allow_upload(:image, accept: ~w(.jpg .jpeg .png .gif), max_entries: 3, max_file_size: 5_000_000)
+        |> allow_upload(:image, accept: ~w(.jpg .jpeg .png .gif .mp4 .webm .mov), max_entries: 3, max_file_size: 50_000_000)
 
       {:ok, socket}
     end
@@ -170,9 +170,13 @@ defmodule TicketElixirWeb.TicketLive.Show do
 
                 <div :if={msg.attachments != []} class="mt-2 space-y-2">
                   <%= for att <- msg.attachments do %>
-                    <a href={att.path} target="_blank">
-                      <img src={att.path} alt={att.filename} class="max-w-[200px] rounded-lg cursor-pointer hover:opacity-80" />
-                    </a>
+                    <%= if String.starts_with?(att.content_type, "image/") do %>
+                      <a href={att.path} target="_blank">
+                        <img src={att.path} alt={att.filename} class="max-w-[200px] rounded-lg cursor-pointer hover:opacity-80" />
+                      </a>
+                    <% else %>
+                      <video src={att.path} controls class="max-w-[300px] rounded-lg mt-2"></video>
+                    <% end %>
                   <% end %>
                 </div>
               </div>
@@ -183,11 +187,16 @@ defmodule TicketElixirWeb.TicketLive.Show do
         <div class="mt-4">
           <.form for={@form} id="chat-form" phx-submit="send_message" phx-change="validate_upload" class="flex flex-col gap-2">
 
+            <!-- Prévia dos arquivos -->
             <div :if={@uploads.image.entries != []} class="flex gap-2 mb-2">
               <%= for entry <- @uploads.image.entries do %>
-                <div class="relative w-20 h-20 border rounded bg-base-100">
-                  <.live_img_preview entry={entry} class="w-full h-full object-cover rounded" />
-                  <button type="button" phx-click="cancel_upload" phx-value-ref={entry.ref} class="absolute -top-2 -right-2 btn btn-circle btn-xs btn-error">X</button>
+                <div class="relative w-24 h-24 border rounded bg-base-100 flex items-center justify-center overflow-hidden">
+                  <%= if String.starts_with?(entry.client_type, "image/") do %>
+                    <.live_img_preview entry={entry} class="w-full h-full object-cover rounded" />
+                  <% else %>
+                    <span class="text-xs text-center px-2 truncate">{entry.client_name}</span>
+                  <% end %>
+                  <button type="button" phx-click="cancel_upload" phx-value-ref={entry.ref} class="absolute -top-1 -right-1 btn btn-circle btn-xs btn-error">X</button>
                 </div>
               <% end %>
             </div>
