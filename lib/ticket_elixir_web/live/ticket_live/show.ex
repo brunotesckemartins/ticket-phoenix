@@ -11,6 +11,9 @@ defmodule TicketElixirWeb.TicketLive.Show do
     if user.role == :solicitante and ticket.solicitante_id != user.id do
       {:ok, push_navigate(socket, to: ~p"/chamados")}
     else
+      # MARCAR COMO LIDO AO ENTRAR
+      Tickets.mark_as_read(ticket.id, user.id)
+
       if connected?(socket) do
         Messages.subscribe(ticket.id)
         Tickets.subscribe_ticket(ticket.id)
@@ -72,10 +75,10 @@ defmodule TicketElixirWeb.TicketLive.Show do
         {:ok, filename}
       end)
 
-      # 3. Avisa todo mundo que a mensagem (com anexos) foi criada
+      # 3. Avisa a todos (Chat e Lista)
       Messages.broadcast({:ok, message})
 
-      # 4. Reabertura do chamado
+      # 4. Reabertura automática se o cliente responder chamado fechado
       ticket =
         if user.role == :solicitante and ticket.status in [:resolvido, :fechado] and not internal do
           {:ok, t} = Tickets.update_ticket(ticket, %{status: :em_andamento})
@@ -180,7 +183,6 @@ defmodule TicketElixirWeb.TicketLive.Show do
         <div class="mt-4">
           <.form for={@form} id="chat-form" phx-submit="send_message" phx-change="validate_upload" class="flex flex-col gap-2">
 
-            <!-- Prévia das imagens -->
             <div :if={@uploads.image.entries != []} class="flex gap-2 mb-2">
               <%= for entry <- @uploads.image.entries do %>
                 <div class="relative w-20 h-20 border rounded bg-base-100">
@@ -191,7 +193,6 @@ defmodule TicketElixirWeb.TicketLive.Show do
             </div>
 
             <div class="flex gap-2 items-center">
-              <!-- Botão de Anexo (Clipe) -->
               <label class="btn btn-square btn-ghost cursor-pointer">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                   <path stroke-linecap="round" stroke-linejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" />

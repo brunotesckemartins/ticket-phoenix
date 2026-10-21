@@ -14,6 +14,7 @@ defmodule TicketElixir.Tickets.Ticket do
     belongs_to :solicitante, TicketElixir.Accounts.User
     belongs_to :atendente, TicketElixir.Accounts.User
     has_many :messages, TicketElixir.Messages.Message
+    has_many :ticket_reads, TicketElixir.Tickets.TicketRead
 
     timestamps(type: :utc_datetime)
   end

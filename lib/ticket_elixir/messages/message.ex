@@ -10,8 +10,6 @@ defmodule TicketElixir.Messages.Message do
 
     belongs_to :ticket, TicketElixir.Tickets.Ticket
     belongs_to :user, TicketElixir.Accounts.User
-
-    # A LINHA MÁGICA QUE FALTAVA:
     has_many :attachments, TicketElixir.Messages.Attachment
 
     timestamps(type: :utc_datetime)

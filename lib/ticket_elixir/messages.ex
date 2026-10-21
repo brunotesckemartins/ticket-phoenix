@@ -8,13 +8,20 @@ defmodule TicketElixir.Messages do
   end
 
   def broadcast({:ok, message} = result) do
-    # Carrega o usuário e os anexos para enviar pro front
     message = Repo.preload(message, [:user, :attachments])
 
+    # 1. Avisa o Chat (tela aberta)
     Phoenix.PubSub.broadcast(
       TicketElixir.PubSub,
       "ticket:#{message.ticket_id}",
       {:new_message, message}
+    )
+
+    # 2. Avisa a Lista de Chamados (badge)
+    Phoenix.PubSub.broadcast(
+      TicketElixir.PubSub,
+      "tickets_global",
+      {:new_ticket_message, message.ticket_id}
     )
     result
   end
@@ -24,7 +31,7 @@ defmodule TicketElixir.Messages do
     from(m in Message,
       where: m.ticket_id == ^ticket_id,
       order_by: [asc: m.inserted_at],
-      preload: [:user, :attachments] # <--- AQUI
+      preload: [:user, :attachments]
     )
     |> Repo.all()
   end
@@ -33,6 +40,16 @@ defmodule TicketElixir.Messages do
     %Message{}
     |> Message.changeset(attrs)
     |> Repo.insert()
+    |> case do
+      {:ok, message} ->
+        # Atualiza o horário do ticket usando :second para remover os microssegundos
+        TicketElixir.Tickets.get_ticket!(message.ticket_id)
+        |> Ecto.Changeset.change(updated_at: DateTime.utc_now(:second)) # <-- MUDANÇA AQUI
+        |> Repo.update!()
+
+        {:ok, message}
+      error -> error
+    end
   end
 
   def create_attachment(attrs) do
