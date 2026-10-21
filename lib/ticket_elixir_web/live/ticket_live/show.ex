@@ -138,28 +138,27 @@ defmodule TicketElixirWeb.TicketLive.Show do
         ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <!-- Aumentamos a largura para max-w-7xl e ajustamos a altura -->
-      <div class="max-w-7xl mx-auto p-2 sm:p-4 flex flex-col h-[calc(100vh-100px)]">
-
+            <div class="max-w-7xl mx-auto p-0 sm:p-4 flex flex-col h-[calc(100dvh-65px)] sm:h-[calc(100vh-100px)]">
         <!-- Cabeçalho do Chamado -->
-        <div class="bg-base-100 border border-base-300 rounded-t-xl p-4 flex justify-between items-center shadow-sm">
+        <div class="bg-base-100 border-b sm:border border-base-300 sm:rounded-t-xl p-3 sm:p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-3 shadow-sm">
           <div>
-            <h1 class="text-xl font-bold flex items-center gap-3">
+            <h1 class="text-lg sm:text-xl font-bold flex flex-wrap items-center gap-2">
               {@ticket.subject}
-              <span class={"badge " <> if @ticket.status == :aberto, do: "badge-warning", else: (if @ticket.status == :em_andamento, do: "badge-primary", else: "badge-success")}>
+              <span class={"badge badge-sm " <> if @ticket.status == :aberto, do: "badge-warning", else: (if @ticket.status == :em_andamento, do: "badge-primary", else: "badge-success")}>
                 {@ticket.status}
               </span>
             </h1>
-            <p class="text-sm text-base-content/70 mt-1">
+            <p class="text-xs sm:text-sm text-base-content/70 mt-1">
               Solicitante: <strong>{@ticket.solicitante.name}</strong>
               <%= if @ticket.atendente do %>
                 | Atendente: <strong>{@ticket.atendente.name}</strong>
               <% end %>
             </p>
           </div>
-          <div class="flex gap-2">
+          <div class="flex flex-wrap gap-2">
             <%= if @current_scope.user.role == :suporte do %>
-              <button :if={@ticket.status == :aberto} phx-click="assign_ticket" class="btn btn-warning btn-sm">Assumir Chamado</button>
-              <button :if={@ticket.status == :em_andamento} phx-click="resolve_ticket" class="btn btn-success btn-sm">Marcar como Resolvido</button>
+              <button :if={@ticket.status == :aberto} phx-click="assign_ticket" class="btn btn-warning btn-sm flex-1 sm:flex-none">Assumir</button>
+              <button :if={@ticket.status == :em_andamento} phx-click="resolve_ticket" class="btn btn-success btn-sm flex-1 sm:flex-none">Resolver</button>
             <% end %>
             <.link navigate={~p"/chamados"} class="btn btn-ghost btn-sm">Voltar</.link>
           </div>
@@ -195,7 +194,8 @@ defmodule TicketElixirWeb.TicketLive.Show do
         </div>
 
         <!-- Área do Formulário Integrada -->
-        <div class="bg-base-100 border border-base-300 rounded-b-xl p-3 shadow-sm">
+                <!-- Área do Formulário Integrada -->
+        <div class="bg-base-100 border-t sm:border border-base-300 sm:rounded-b-xl p-2 sm:p-3 shadow-sm">
           <.form for={@form} id="chat-form" phx-submit="send_message" phx-change="validate_upload" class="flex flex-col gap-2">
 
             <!-- Prévia dos arquivos -->

@@ -32,12 +32,30 @@ defmodule TicketElixir.Tickets do
     )
   end
 
-  def list_tickets_with_unread(user) do
+  # ATUALIZADO PARA ACEITAR FILTROS DE BUSCA E STATUS
+  def list_tickets_with_unread(user, params \\ %{}) do
     base_query =
       if user.role == :suporte do
         from t in Ticket
       else
         from t in Ticket, where: t.solicitante_id == ^user.id
+      end
+
+    # Filtro por Status
+    base_query =
+      if params["status"] && params["status"] != "" do
+        from t in base_query, where: t.status == ^params["status"]
+      else
+        base_query
+      end
+
+    # Filtro por Busca (Assunto)
+    base_query =
+      if params["search"] && params["search"] != "" do
+        search_term = "%#{params["search"]}%"
+        from t in base_query, where: ilike(t.subject, ^search_term)
+      else
+        base_query
       end
 
     query =
@@ -77,7 +95,7 @@ defmodule TicketElixir.Tickets do
     Ticket.changeset(ticket, attrs)
   end
 
-    def count_tickets(user, status) do
+  def count_tickets(user, status) do
     query =
       if user.role == :suporte do
         from t in Ticket, where: t.status == ^status

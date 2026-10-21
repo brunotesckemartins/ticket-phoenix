@@ -20,35 +20,35 @@ defmodule TicketElixirWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-        <header class="navbar px-4 sm:px-6 lg:px-8 border-b border-base-300 bg-base-100 sticky top-0 z-50">
+            <header class="navbar px-2 sm:px-6 lg:px-8 border-b border-base-300 bg-base-100 sticky top-0 z-50">
       <div class="flex-1">
         <a href="/" class="flex-1 flex w-fit items-center gap-2 hover:opacity-80 transition-opacity">
-          <!-- Ícone de Ticket do Heroicons -->
-          <.icon name="hero-ticket" class="w-7 h-7 text-primary" />
-          <span class="text-xl font-bold tracking-tight">HelpDesk</span>
+          <.icon name="hero-ticket" class="w-6 h-6 sm:w-7 sm:h-7 text-primary" />
+          <!-- Esconde o texto "HelpDesk" em telas muito pequenas -->
+          <span class="text-lg sm:text-xl font-bold tracking-tight hidden sm:inline-block">HelpDesk</span>
         </a>
       </div>
 
       <div class="flex-none">
-        <ul class="flex px-1 space-x-2 items-center">
+        <ul class="flex px-1 space-x-1 sm:space-x-2 items-center">
 
-          <!-- Botão de Usuários (apenas Suporte) -->
-          <li :if={@current_scope && @current_scope.user.role == :suporte}>
+          <!-- Botão de Usuários (escondido no celular, visível no desktop) -->
+          <li :if={@current_scope && @current_scope.user.role == :suporte} class="hidden md:block">
             <.link navigate={~p"/usuarios"} class="btn btn-ghost btn-sm font-medium text-base-content/80">
               Usuários
             </.link>
           </li>
 
+          <!-- Toggle de Tema -->
           <li>
             <.theme_toggle />
           </li>
 
-          <!-- Menu do Usuário Logado -->
+          <!-- Menu do Usuário -->
           <li :if={@current_scope && @current_scope.user}>
-            <div class="dropdown dropdown-end ml-2">
+            <div class="dropdown dropdown-end ml-1 sm:ml-2">
               <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar placeholder">
-                <div class="bg-neutral text-neutral-content rounded-full w-9">
-                  <!-- Pega a primeira letra do nome do usuário -->
+                <div class="bg-neutral text-neutral-content rounded-full w-8 h-8 sm:w-9 sm:h-9">
                   <span>{String.first(@current_scope.user.name)}</span>
                 </div>
               </div>
@@ -57,6 +57,10 @@ defmodule TicketElixirWeb.Layouts do
                   <p class="text-sm font-semibold truncate">{@current_scope.user.name}</p>
                   <p class="text-xs text-base-content/60 truncate">{@current_scope.user.email}</p>
                 </div>
+                <!-- Adiciona o link de usuários no menu dropdown do celular -->
+                <li :if={@current_scope.user.role == :suporte} class="md:hidden">
+                  <.link navigate={~p"/usuarios"} class="text-sm">Gestão de Usuários</.link>
+                </li>
                 <li><.link navigate={~p"/users/settings"} class="text-sm">Configurações</.link></li>
                 <li><.link href={~p"/users/log-out"} method="delete" class="text-sm text-error">Sair da conta</.link></li>
               </ul>
